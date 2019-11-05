@@ -10,8 +10,22 @@ var data =[
             data: []
         };
     }
-
-    componentDidMount(){
+          
+    handleCommentSubmit(comment){
+        $.ajax({
+            url: this.props.url,
+            dataType: 'json',
+            type: 'POST',
+            data:comment,
+            success: function(data) {
+              this.setState({data: data});
+            }.bind(this),
+            error: function(xhr, status, err) {
+              console.error(this.props.url, status, err.toString());
+            }.bind(this)
+    }); 
+}
+    loadCommentsFromServer(){
             $.ajax({
               url: this.props.url,
               dataType: 'json',
@@ -24,12 +38,18 @@ var data =[
               }.bind(this)
       }); 
     }
+    componentDidMount() {
+        this.loadCommentsFromServer();
+        setInterval(this.loadCommentsFromServer.bind(this), 
+        this.props.pollInterval);
+      }
+
     render() {
       return (
         <div className="commentBox">
           <h1>lista dei commenti</h1>
           <CommentList data={this.state.data}/>
-          <CommentForm />
+          <CommentForm onCommentSubmit={this.handleCommentSubmit.bind(this)}/>
         </div>
 ); 
 }
@@ -53,11 +73,29 @@ class CommentList extends React.Component{
     }
 };
 class CommentForm extends React.Component{
+        handleSubmit(event){
+            event.preventDefault();
+            var author=ReactDOM.findDOMNode(this.refs.author).value;
+            var text=ReactDOM.findDOMNode(this.refs.text).value;
+            if (!text || !author) {
+                return;
+            }
+            //todo chiama il server e fai la post
+            console.log("serverrrrrrr" + author + text)
+            this.props.onCommentSubmit({author,text});
+            //pulisco i valoti fopo l'invio
+            ReactDOM.findDOMNode(this.refs.author).value ='';
+            ReactDOM.findDOMNode(this.refs.text).value ='';
+            return;
+          }
+  
     render(){
         return(
-            <div className="commentBox">
-            Ciao, mondo! Sono un CommentForm.
-          </div>
+            <form className="commentForm" onSubmit={this.handleSubmit.bind(this)}>
+            <input type="text" placeholder="Il tuo nome" ref="author" />
+            <input type="text" placeholder="Di' qualcosa..." ref="text"/>
+            <input type="submit" value="Invia" />
+            </form>
         )
     }
 };
@@ -84,6 +122,6 @@ class Comment extends React.Component{
 
 
   ReactDOM.render(
-    <CommentBox url="/api/comments"/>,
+    <CommentBox url="/api/comments" pollInterval="2000"/>,
     document.getElementById('content')
   );
